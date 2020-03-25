@@ -17,10 +17,10 @@ recobrar_table = Table('Recobrar', metadata,
                        Column('charge_id', String(200)),
                        Column('result', String(200)),
                        Column('sf_transaction_id', String(200)),
-                       Column('sf_input', String(200)),
                        Column('acquirer', String(200)),
-                       Column('acquirer_message', String(200)),
+                       Column('acquirer_code', String(200)),
                        Column('tid', String(200)),
-                       Column('date', DateTime)
+                       Column('date', DateTime),
+                       Column('last_update', DateTime)
                        )
 metadata.create_all()

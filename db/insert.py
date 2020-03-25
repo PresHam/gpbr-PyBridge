@@ -1,8 +1,9 @@
 from db.sql_core import engine, recobrar_table
+import datetime as dt
 
 
 def insert_recobrar(opportunity, card_id, customer_id, amount, order_id,
-                    charge_id, result, sf_transaction_id, sf_input,
+                    charge_id, result, sf_transaction_id,
                     acquirer, acquirer_message, tid, date):
     conn = engine.connect()
     ins = recobrar_table.insert()
@@ -14,10 +15,10 @@ def insert_recobrar(opportunity, card_id, customer_id, amount, order_id,
                              charge_id=charge_id,
                              result=result,
                              sf_transaction_id=sf_transaction_id,
-                             sf_input=sf_input,
                              acquirer=acquirer,
-                             acquirer_message=acquirer_message,
+                             acquirer_code=acquirer_message,
                              tid=tid,
-                             date=date)
+                             date=date,
+                             last_update=dt.datetime.now())
     conn.execute(new_success)
     conn.close()

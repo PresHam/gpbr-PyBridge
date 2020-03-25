@@ -45,7 +45,7 @@ class App(tk.Frame):
         self.salesforce = tk.Button(self, text="Atualizar Salesforce", command=self.salesforce_insert)
         self.salesforce.pack(side="top")
 
-        self.log = tk.Text(self, height=20, width=60)
+        self.log = tk.Text(self, height=20, width=60, borderwidth=5)
         self.log.pack(side="bottom")
         self.log.insert(tk.END, "Bem-vindo!\n")
         self.log.insert(tk.END, f"Data: {dt.datetime.now().strftime('%d/%m/%Y')}\n")
@@ -53,9 +53,11 @@ class App(tk.Frame):
         self.info = tk.Label(self, text=f"Transactions this month: {len(label_transactions())}", fg="blue")
         self.info.pack(side="right")
 
-        self.quit = tk.Button(self, text="QUIT", fg="red", command=self.master.destroy)
+        self.quit = tk.Button(self, text="QUIT", fg="red", command=self.erase)
         self.quit.pack(side="left")
 
+    def erase(self):
+        self.quit.pack_forget()
 
     # Botão de iniciar processo
     def recobra_mundipagg(self):
@@ -85,15 +87,30 @@ class App(tk.Frame):
                 print(f'Transações efetivadas: {contador} de {len(self.df)}')
 
         except:
-            df_remanescente = self.df[contador:]
-            df_remanescente.to_csv('remanescentes.csv')
             self.insert_log(f'erro de conexão , interrompido na linha {contador}')
             print(f'erro de conexão , interrompido na linha {contador}')
 
         print(f'\nFinalizado, {contador} cobranças.')
         self.insert_log(f'Finalizado, {contador} cobranças.')
 
-    # Execução de cada linha do loop
+    # insert Transaction + Update opp Close Date
+    def salesforce_insert(self):
+        # Consulta cobranças feitas com sucesso na mundipagg com a data de hoje
+        # Inclui as transactions no Salesforce
+        result_insert = insert_sf_transaction(salesforce_to_insert(), self.client)
+        self.salesforce.config(text='Transactions Inseridas', bg='green')
+        self.insert_log(result_insert)
+
+    # Insere logs na UI
+    def insert_log(self, text):
+        self.log_lines += 1
+        if self.log_lines > 20:
+            self.log.delete('1.0', tk.END)
+            self.log_lines = 0
+        self.log.insert(tk.END, text+'\n')
+        self.log.update()
+
+    # Functions outside GUI
     def create_order(self, opportunity, card_id, customer_id, amount_raw, date, orders_controller):
         amount = int(amount_raw * 100)
 
@@ -125,7 +142,6 @@ class App(tk.Frame):
             insert_recobrar(opportunity, card_id, customer_id, int(amount / 100),
                             result.id, result.charges[0].id, result.status,
                             sf_transaction_id=None,
-                            sf_input=None,
                             acquirer=result.charges[0].last_transaction.acquirer_message.split('|')[0],
                             acquirer_message=result.charges[0].last_transaction.acquirer_return_code,
                             tid=result.charges[0].last_transaction.acquirer_tid,
@@ -142,27 +158,11 @@ class App(tk.Frame):
             print("Errors: ", ex.errors)
             # Insert banco de dados
             insert_recobrar(opportunity, card_id, customer_id, int(amount / 100), order_id=None, charge_id=None,
-                            result=ex.message, sf_transaction_id=None, sf_input=None, acquirer=None,
+                            result=ex.message, sf_transaction_id=None, acquirer=None,
                             acquirer_message=None, tid=None, date=date)
         except Exception as ex:
             raise ex
 
-    # insert Transaction + Update opp Close Date
-    def salesforce_insert(self):
-        # Consulta cobranças feitas com sucesso na mundipagg com a data de hoje
-        # Inclui as transactions no Salesforce
-        result_insert = insert_sf_transaction(salesforce_to_insert(), self.client)
-        self.salesforce.config(text='Transactions Inseridas', bg='green')
-        self.insert_log(result_insert)
-
-    # Insere logs na UI
-    def insert_log(self, text):
-        self.log_lines += 1
-        if self.log_lines > 20:
-            self.log.delete('1.0', tk.END)
-            self.log_lines = 0
-        self.log.insert(tk.END, text+'\n')
-        self.log.update()
 
 
 # Standard Configs
